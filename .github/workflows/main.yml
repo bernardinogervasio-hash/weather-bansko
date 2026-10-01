@@ -29,8 +29,7 @@ jobs:
         run: |
           python <<'PY'
           import requests
-          from io import BytesIO
-          from PIL import Image, ImageDraw, ImageFont, ImageOps
+          from PIL import Image, ImageDraw, ImageFont
 
           latitude = 41.8384
           longitude = 23.4882
@@ -43,18 +42,17 @@ jobs:
               "&timezone=Europe%2FSofia"
           )
 
-          weather = requests.get(weather_url, timeout=30)
-          weather.raise_for_status()
+          response = requests.get(weather_url, timeout=30)
+          response.raise_for_status()
 
-          data = weather.json()
+          data = response.json()
           temperature = round(data["current"]["temperature_2m"])
 
           image = Image.open("background.png").convert("RGB")
 
-          image = ImageOps.fit(
-              image,
+          image = image.resize(
               (1200, 1200),
-              method=Image.Resampling.LANCZOS
+              Image.Resampling.LANCZOS
           )
 
           draw = ImageDraw.Draw(image)
@@ -81,7 +79,7 @@ jobs:
               stroke_fill="black"
           )
 
-          image.save("weather-bansko.png", quality=95)
+          image.save("weather-bansko.png")
 
           print(f"Температура в Банско: {temperature}°C")
           PY
