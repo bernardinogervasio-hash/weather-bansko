@@ -25,18 +25,21 @@ jobs:
         run: |
           python -m pip install pillow requests
 
+      - name: Create background copy
+        run: |
+          if [ ! -f background.png ]; then
+            cp weather-bansko.png background.png
+          fi
+
       - name: Create weather image
         run: |
           python <<'PY'
           import requests
-          from io import BytesIO
-          from PIL import Image, ImageDraw, ImageFont, ImageOps
+          from PIL import Image, ImageDraw, ImageFont
 
-          # Координати на Банско
           latitude = 41.8384
           longitude = 23.4882
 
-          # Времето в момента
           weather_url = (
               "https://api.open-meteo.com/v1/forecast"
               f"?latitude={latitude}"
@@ -45,29 +48,15 @@ jobs:
               "&timezone=Europe%2FSofia"
           )
 
-          weather = requests.get(weather_url, timeout=30)
-          weather.raise_for_status()
-          data = weather.json()
+          response = requests.get(weather_url, timeout=30)
+          response.raise_for_status()
 
+          data = response.json()
           temperature = round(data["current"]["temperature_2m"])
 
-          # Фоновата снимка
-          image_url = (
-              "https://i.postimg.cc/y8n9N7S1/"
-              "Izobrazenie-ot-Chat-GPT-1-10-2026-g-10-40-55.png"
-          )
-
-          image_response = requests.get(image_url, timeout=30)
-          image_response.raise_for_status()
-
-          image = Image.open(BytesIO(image_response.content)).convert("RGB")
-
-          # Размер 1200 x 1200
-          image = ImageOps.fit(image, (1200, 1200), method=Image.Resampling.LANCZOS)
-
+          image = Image.open("background.png").convert("RGB")
           draw = ImageDraw.Draw(image)
 
-          # Шрифт
           font = ImageFont.truetype(
               "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
               90
@@ -75,14 +64,12 @@ jobs:
 
           text = f"{temperature}°C"
 
-          # Позиция горе вдясно
           bbox = draw.textbbox((0, 0), text, font=font)
           text_width = bbox[2] - bbox[0]
 
           x = 1200 - text_width - 70
           y = 110
 
-          # Черен контур за четливост
           draw.text(
               (x, y),
               text,
@@ -92,8 +79,7 @@ jobs:
               stroke_fill="black"
           )
 
-          # Запис
-          image.save("weather-bansko.png", quality=95)
+          image.save("weather-bansko.png")
 
           print(f"Температура в Банско: {temperature}°C")
           PY
@@ -102,8 +88,7 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
-          git add weather-bansko.png
+          git add weather-bansko.png background.png
 
           if git diff --cached --quiet; then
             echo "Няма промяна."
