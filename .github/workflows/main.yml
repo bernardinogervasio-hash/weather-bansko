@@ -1,0 +1,113 @@
+name: Weather Bansko
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update-weather:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install libraries
+        run: |
+          python -m pip install pillow requests
+
+      - name: Create weather image
+        run: |
+          python <<'PY'
+          import requests
+          from io import BytesIO
+          from PIL import Image, ImageDraw, ImageFont, ImageOps
+
+          # Координати на Банско
+          latitude = 41.8384
+          longitude = 23.4882
+
+          # Времето в момента
+          weather_url = (
+              "https://api.open-meteo.com/v1/forecast"
+              f"?latitude={latitude}"
+              f"&longitude={longitude}"
+              "&current=temperature_2m"
+              "&timezone=Europe%2FSofia"
+          )
+
+          weather = requests.get(weather_url, timeout=30)
+          weather.raise_for_status()
+          data = weather.json()
+
+          temperature = round(data["current"]["temperature_2m"])
+
+          # Фоновата снимка
+          image_url = (
+              "https://i.postimg.cc/y8n9N7S1/"
+              "Izobrazenie-ot-Chat-GPT-1-10-2026-g-10-40-55.png"
+          )
+
+          image_response = requests.get(image_url, timeout=30)
+          image_response.raise_for_status()
+
+          image = Image.open(BytesIO(image_response.content)).convert("RGB")
+
+          # Размер 1200 x 1200
+          image = ImageOps.fit(image, (1200, 1200), method=Image.Resampling.LANCZOS)
+
+          draw = ImageDraw.Draw(image)
+
+          # Шрифт
+          font = ImageFont.truetype(
+              "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+              90
+          )
+
+          text = f"{temperature}°C"
+
+          # Позиция горе вдясно
+          bbox = draw.textbbox((0, 0), text, font=font)
+          text_width = bbox[2] - bbox[0]
+
+          x = 1200 - text_width - 70
+          y = 110
+
+          # Черен контур за четливост
+          draw.text(
+              (x, y),
+              text,
+              font=font,
+              fill="white",
+              stroke_width=3,
+              stroke_fill="black"
+          )
+
+          # Запис
+          image.save("weather-bansko.png", quality=95)
+
+          print(f"Температура в Банско: {temperature}°C")
+          PY
+
+      - name: Save generated image
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add weather-bansko.png
+
+          if git diff --cached --quiet; then
+            echo "Няма промяна."
+          else
+            git commit -m "Update Bansko weather"
+            git push
+          fi
