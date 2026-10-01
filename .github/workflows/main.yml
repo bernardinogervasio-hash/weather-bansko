@@ -49,17 +49,7 @@ jobs:
           data = weather.json()
           temperature = round(data["current"]["temperature_2m"])
 
-          image_url = (
-              "https://i.postimg.cc/y8n9N7S1/"
-              "Izobrazenie-ot-Chat-GPT-1-10-2026-g-10-40-55.png"
-          )
-
-          image_response = requests.get(image_url, timeout=30)
-          image_response.raise_for_status()
-
-          image = Image.open(
-              BytesIO(image_response.content)
-          ).convert("RGB")
+          image = Image.open("background.png").convert("RGB")
 
           image = ImageOps.fit(
               image,
