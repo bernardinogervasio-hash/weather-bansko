@@ -95,4 +95,33 @@ jobs:
           else
             git commit -m "Update Bansko weather"
             git push
-          fi
+          fi      
+          - name: Publish to Facebook
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+        run: |
+          python <<'PY'
+          import os
+          import requests
+
+          page_id = os.environ["FB_PAGE_ID"]
+          token = os.environ["FB_PAGE_ACCESS_TOKEN"]
+
+          with open("weather-bansko.png", "rb") as image:
+              response = requests.post(
+                  f"https://graph.facebook.com/v26.0/{page_id}/photos",
+                  data={
+                      "access_token": token,
+                      "caption": "Времето в Банско"
+                  },
+                  files={
+                      "source": ("weather-bansko.png", image, "image/png")
+                  },
+                  timeout=60
+              )
+
+          print(response.status_code)
+          print(response.text)
+          response.raise_for_status()
+          PY
