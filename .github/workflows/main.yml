@@ -96,7 +96,20 @@ jobs:
             git commit -m "Update Bansko weather"
             git push
           fi      
-          - name: Publish to Facebook
+               - name: Save generated image
+                 run: |
+              git config user.name "github-actions"
+              git config user.email "github-actions@github.com"
+              git add weather-bansko.png
+  
+              if git diff --cached --quiet; then
+              echo "Няма промяна."
+              else
+              git commit -m "Update Bansko weather"
+              git push
+            fi
+
+      - name: Publish to Facebook
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
